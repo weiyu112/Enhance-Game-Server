@@ -94,7 +94,6 @@ int main(int argc, char *const *argv)
     ngx_pid    = getpid();      //取得进程pid
     ngx_parent = getppid();     //取得父进程的id 
 
-    
     //统计argv所占的内存
     g_argvneedmem = 0;
     for(i = 0; i < argc; i++)  //argv =  ./nginx -a -b -c asdfas
