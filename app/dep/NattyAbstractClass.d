@@ -1,2 +1,2 @@
-/home/share/mysever/nginx/app/link_obj/NattyAbstractClass.o: NattyAbstractClass.cxx \
- /home/share/mysever/nginx/_include/NattyAbstractClass.h
+/mnt/hgfs/server/Enhance-Game-Server/app/link_obj/NattyAbstractClass.o: NattyAbstractClass.cxx \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/NattyAbstractClass.h

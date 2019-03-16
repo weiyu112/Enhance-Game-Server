@@ -987,7 +987,7 @@ void *ntyRetrieveThreadCb(void *arg) {
 		ntySemTimeWait(Pool->alarm, Pool->mutex, wait);
 		if (Pool->stopped) break;
 
-		printf("check connection\n");
+		//printf("check connection\n");
 		doRetrieve(Pool);
 	}
 	ntyMutexUnlock(Pool->mutex);

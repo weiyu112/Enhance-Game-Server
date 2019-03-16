@@ -260,7 +260,7 @@ static void ngx_init_connect_childserver()
 {
     if (g_servertype==1) {
         /* code */
-        ngx_log_stderr(0,"gatawayserver connect loginserver");
+        //ngx_log_stderr(0,"gatawayserver connect loginserver");
         g_socket.ngx_connectto_child_server();
     }
 }

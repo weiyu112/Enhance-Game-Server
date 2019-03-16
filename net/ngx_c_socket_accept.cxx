@@ -79,7 +79,7 @@ void CSocekt::ngx_event_accept(lpngx_connection_t oldc)
             {
                 level = NGX_LOG_CRIT;
             }
-            ngx_log_error_core(level,errno,"CSocekt::ngx_event_accept()中accept4()失败!");
+            //ngx_log_error_core(level,errno,"CSocekt::ngx_event_accept()中accept4()失败!");
 
             if(use_accept4 && err == ENOSYS) //accept4()函数没实现，坑爹？
             {
@@ -101,7 +101,25 @@ void CSocekt::ngx_event_accept(lpngx_connection_t oldc)
             return;
         }  //end if(s == -1)
 
-        //走到这里的，表示accept4()/accept()成功了        
+        //走到这里的，表示accept4()/accept()成功了     
+        if(m_onlineUserCount >= m_worker_connections)  //用户连接数过多，要关闭该用户socket，因为现在也没分配连接，所以直接关闭即可
+        {
+            ngx_log_stderr(0,"超出系统允许的最大连入用户数(最大允许连入数%d)，关闭连入请求(%d)。",m_worker_connections,s);  
+            close(s);
+            return ;
+        }
+        //如果某些恶意用户连上来发了1条数据就断，不断连接，会导致频繁调用ngx_get_connection()使用我们短时间内产生大量连接，危及本服务器安全
+        if(m_connectionList.size() > (m_worker_connections * 5))
+        {
+            //比如你允许同时最大2048个连接，但连接池却有了 2048*5这么大的容量，这肯定是表示短时间内 产生大量连接/断开，因为我们的延迟回收机制，这里连接还在垃圾池里没有被回收
+            if(m_freeconnectionList.size() < m_worker_connections)
+            {
+                //整个连接池这么大了，而空闲连接却这么少了，所以我认为是  短时间内 产生大量连接，发一个包后就断开，我们不可能让这种情况持续发生，所以必须断开新入用户的连接
+                //一直到m_freeconnectionList变得足够大【连接池中连接被回收的足够多】
+                close(s);
+                return ;   
+            }
+        }     
         //ngx_log_stderr(errno,"accept4成功s=%d",s); //s这里就是 一个句柄了
         newc = ngx_get_connection(s); //这是针对新连入用户的连接，和监听套接字 所对应的连接是两个不同的东西，不要搞混
         if(newc == NULL)
@@ -134,7 +152,7 @@ void CSocekt::ngx_event_accept(lpngx_connection_t oldc)
                 return; //直接返回
             }
         }
-        ngx_log_stderr(0,"接收到一个连接！！！,连接ip：%s;连接port：%d\n",inet_ntoa(mysockaddr.sin_addr),ntohs(mysockaddr.sin_port));
+        //ngx_log_stderr(0,"接收到一个连接！！！,连接ip：%s;连接port：%d\n",inet_ntoa(mysockaddr.sin_addr),ntohs(mysockaddr.sin_port));
         newc->listening = oldc->listening;                    //连接对象 和监听对象关联，方便通过连接对象找监听对象【关联到监听端口】
         //newc->w_ready = 1;                                    //标记可以写，新连接写事件肯定是ready的；【从连接池拿出一个连接时这个连接的所有成员都是0】            
         
@@ -179,6 +197,12 @@ void CSocekt::ngx_event_accept(lpngx_connection_t oldc)
         }
         */
         
+        
+        if(m_ifkickTimeCount == 1&&g_servertype==1)
+        {
+            AddToTimerQueue(newc);
+        }
+        ++m_onlineUserCount;  //连入用户数量+1   
         break;  //一般就是循环一次就跳出去
     } while (1);   
 

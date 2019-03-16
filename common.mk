@@ -1,4 +1,4 @@
-﻿
+
 #.PHONY:all clean 
 
 ifeq ($(DEBUG),true)
@@ -69,7 +69,7 @@ $(BIN):$(LINK_OBJ)
 
 #一些变量：$@：目标，     $^：所有目标依赖
 # gcc -o 是生成可执行文件
-	$(CC) -o $@ $^ -lstdc++  -lpthread -llua5.2 `mysql_config --cflags --libs`
+	$(CC) -o $@ $^ -lstdc++  -lpthread -lhiredis `mysql_config --cflags --libs`
 
 #----------------------------------------------------------------1end-------------------
 

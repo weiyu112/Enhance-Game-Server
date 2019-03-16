@@ -34,18 +34,19 @@ ngx_logic_gataway::~ngx_logic_gataway()
 
 bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADER pMypkHeader,LPSTRUC_MSG_HEADER pMsgHeader,char *pPkgBody,unsigned short iBodyLength)
 {
+    //ngx_log_stderr(0,"1111111111111111111111111111111111!\n");
     //(1)首先判断包体的合法性
     if(pPkgBody == NULL) //具体看客户端服务器约定，如果约定这个命令[msgCode]必须带包体，那么如果不带包体，就认为是恶意包，直接不处理    
     {        
         return false;
-    }
-		    
-    int iRecvLen = sizeof(STRUCT_REGISTER); 
-    if(iRecvLen != iBodyLength) //发送过来的结构大小不对，认为是恶意包，直接不处理
-    {     
-        return false; 
-    }
-
+    }	    
+    //ngx_log_stderr(0,"22222222222222222222222!\n");
+    // int iRecvLen = sizeof(STRUCT_REGISTER); 
+    // if(iRecvLen != iBodyLength) //发送过来的结构大小不对，认为是恶意包，直接不处理
+    // {   
+    //     ngx_log_stderr(0,"333333333333333333333!\n");
+    //     return false; 
+    // }
     //(2)对于同一个用户，可能同时发送来多个请求过来，造成多个线程同时为该 用户服务，比如以网游为例，用户要在商店中买A物品，又买B物品，而用户的钱 只够买A或者B，不够同时买A和B呢？
        //那如果用户发送购买命令过来买了一次A，又买了一次B，如果是两个线程来执行同一个用户的这两次不同的购买命令，很可能造成这个用户购买成功了 A，又购买成功了 B
        //所以，为了稳妥起见，针对某个用户的命令，我们一般都要互斥,我们需要增加临界的变量于ngx_connection_s结构中
@@ -58,7 +59,6 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
        //当前该玩家的状态是否适合收到这个数据等等【比如如果用户没登陆，它就不适合购买物品等等】
         //这里大家自己发挥，自己根据业务需要来扩充代码，老师就不带着大家扩充了。。。。。。。。。。。。
     //。。。。。。。。
-
     //(5)给客户端返回数据时，一般也是返回一个结构，这个结构内容具体由客户端/服务器协商，这里我们就以给客户端也返回同样的 STRUCT_REGISTER 结构来举例    
     //LPSTRUCT_REGISTER pFromPkgHeader =  (LPSTRUCT_REGISTER)(((char *)pMsgHeader)+m_iLenMsgHeader);	//指向收到的包的包头，其中数据后续可能要用到
 	LPCOMM_PKG_HEADER pPkgHeader;	
@@ -67,7 +67,7 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
 	CMemory  *p_memory = CMemory::GetInstance();
 	CCRC32   *p_crc32 = CCRC32::GetInstance();
     int iSendLen = iBodyLength;  
-    ngx_log_stderr(0,"iSendLen:%d!\n",iSendLen);
+    //ngx_log_stderr(0,"iSendLen:%d!\n",iSendLen);
 
     
     //a)分配要发送出去的包的内存
@@ -76,9 +76,10 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
     char *p_sendbuf = (char *)p_memory->AllocMemory(m_msgHander+m_apkHander+iSendLen,false);//准备发送的格式，这里是 消息头+包头+包体
     //ngx_log_stderr(0,"packagelen:%d!\n",m_msgHander+m_apkHander+iSendLen);
     pPkgHeader = (LPCOMM_PKG_HEADER)(p_sendbuf+m_msgHander);
-    if(pMypkHeader->isComeSever)
+    //ngx_log_stderr(0,"sServerType错误，不存在此server id：%d!\n",pConn->servertype);
+    //ngx_log_stderr(0,"4444444444444444444444444444444!\n");
+    if(pMypkHeader->isComeSever&&pConn->servertype!=0)
     {
-        //ngx_log_stderr(0,"pMypkHeader->_id%d!\n",htonl(pMypkHeader->_id));
         _pMsgHeader=getOneMsgHeaderBySocketFd(htonl(pMypkHeader->_id));
         removeOneSendItemById(htonl(pMypkHeader->_id));
         // ngx_log_stderr(0,"_pMsgHeader->iCurrsequence:%d!\n", _pMsgHeader->iCurrsequence);
@@ -87,29 +88,61 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
                 
         // struct sockaddr_in *sock = ( struct sockaddr_in*)&_Conn->s_sockaddr;
         // ngx_log_stderr(0,"pMypkHeader->isComeSever,连接ip：%s;连接port：%d\n",inet_ntoa(sock->sin_addr),ntohs(sock->sin_port));
-        memcpy(p_sendbuf,_pMsgHeader,m_msgHander); 
+        if(_pMsgHeader)
+        {
+            memcpy(p_sendbuf,_pMsgHeader,m_msgHander); 
+        }
+        else
+        {
+            p_memory->FreeMemory(p_sendbuf);
+            ngx_log_stderr(0,"pMypkHeader->_id错误，不存在此pMypkHeader->_id：%d!\n",pMypkHeader->_id);
+            return false;
+        }
+        
     }
     else{
+        if(pMypkHeader->sServerType==1)
+        {
+            p_memory->FreeMemory(p_sendbuf);
+            ngx_log_stderr(0,"sServerType错误，不存在此server id：%d!\n",pMypkHeader->sServerType);
+            return false;
+        }
         _pMsgHeader=(LPSTRUC_MSG_HEADER)p_memory->AllocMemory(m_msgHander,true);
         _pMsgHeader->pConn=g_socket.ngx_get_one_childserver_connectbyservertype(pMypkHeader->sServerType);
         //ngx_log_stderr(0,"5555555555555555555555555555555!\n");
-        _pMsgHeader->iCurrsequence=_pMsgHeader->pConn->iCurrsequence;
-        // lpngx_connection_t _Conn = _pMsgHeader->pConn;
+        if(_pMsgHeader->pConn)
+        {
+            _pMsgHeader->iCurrsequence=_pMsgHeader->pConn->iCurrsequence;
+        }
+        else{
+            if(_pMsgHeader)
+            {
+                p_memory->FreeMemory(_pMsgHeader);
+                _pMsgHeader=nullptr;
+            }
+            ngx_log_stderr(0,"获取自服务器连接失败 servertype：%d!\n",pMypkHeader->sServerType);
+            return false;
+        }
+        
+        //  lpngx_connection_t _Conn = _pMsgHeader->pConn;
                 
         // struct sockaddr_in *sock = ( struct sockaddr_in*)&_Conn->s_sockaddr;
-        // ngx_log_stderr(0,"pMypkHeader->isComeSever,连接ip：%s;连接port：%d\n",inet_ntoa(sock->sin_addr),ntohs(sock->sin_port));
+        // ngx_log_stderr(9,"pMypkHeader->isComeSever,连接ip：%s;连接port：%d\n",inet_ntoa(sock->sin_addr),ntohs(sock->sin_port));
         memcpy(p_sendbuf,_pMsgHeader,m_msgHander);  
     }
+    //ngx_log_stderr(0,"55555555555555555555555555555555555!\n");
+    // struct sockaddr_in *sock = ( struct sockaddr_in*)&_pMsgHeader->pConn->s_sockaddr;
+    // ngx_log_stderr(0,"sendto,连接ip：%s;连接port：%d\n",inet_ntoa(sock->sin_addr),ntohs(sock->sin_port));
     if(_pMsgHeader)
     {
         p_memory->FreeMemory(_pMsgHeader);
         _pMsgHeader=nullptr;
     }
                       //消息头直接拷贝到这里来
-
     memcpy(p_sendbuf+m_msgHander+m_apkHander,pPkgBody,iSendLen);
 
     
+    //ngx_log_stderr(0,"3333333333333333333333333333333pMypkHeader->sServerType:%d!\n",pMypkHeader->sServerType);
     
     //c)填充包头
         //指向包头
@@ -132,7 +165,7 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
         pPkgHeader->isComeSever=pMypkHeader->isComeSever;
         pPkgHeader->crc32 = htonl(pMypkHeader->crc32);
     }
-    //ngx_log_stderr(0,"3333333333333333333333333333333size:%d!\n",sizeof(p_sendbuf));
+    
     // pMypkHeader->msgCode = pMypkHeader->msgCode;	                        //消息代码，可以统一在ngx_logiccomm.h中定义
     // pPkgHeader->msgCode = htons(pPkgHeader->msgCode);	            //htons主机序转网络序 
     // pPkgHeader->pkgLen  = htons(m_apkHander + iSendLen);        //整个包的尺寸【包头+包体尺寸】 
@@ -179,6 +212,7 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
 LPSTRUC_MSG_HEADER ngx_logic_gataway::getOneMsgHeaderBySocketFd(int _fd)
 {
     //ngx_log_stderr(0,"3333333333333333333333333333333!m_allChangeSendMsgHeader.size():%d\n",m_allChangeSendMsgHeader.size());
+    CLock lock(&g_socket.m_allchildtolistMutex);
     if(m_allChangeSendMsgHeader.find(_fd)!=m_allChangeSendMsgHeader.end())
     {
         return m_allChangeSendMsgHeader.at(_fd);
@@ -189,6 +223,7 @@ LPSTRUC_MSG_HEADER ngx_logic_gataway::getOneMsgHeaderBySocketFd(int _fd)
 
 void ngx_logic_gataway::addChangeSendMsgListByFd(int _fd,LPSTRUC_MSG_HEADER _msg)
 {
+    CLock lock(&g_socket.m_allchildtolistMutex);
     CMemory  *p_memory = CMemory::GetInstance();
     LPSTRUC_MSG_HEADER _mmsg = (LPSTRUC_MSG_HEADER)p_memory->AllocMemory(m_msgHander,false);
     memcpy(_mmsg,_msg,m_msgHander);
@@ -197,6 +232,7 @@ void ngx_logic_gataway::addChangeSendMsgListByFd(int _fd,LPSTRUC_MSG_HEADER _msg
 
 void ngx_logic_gataway::removeOneSendItemById(int _id)
 {
+    CLock lock(&g_socket.m_allchildtolistMutex);
     auto iter = m_allChangeSendMsgHeader.find(_id);
     if(iter !=m_allChangeSendMsgHeader.end())
     {
@@ -207,6 +243,7 @@ void ngx_logic_gataway::removeOneSendItemById(int _id)
 
 int  ngx_logic_gataway::getOneId()
 {
+    CLock lock(&g_socket.m_allchildidtolistMutex);
     if(m_changeSendMapId.size()>0)
     {
         int _id = *m_changeSendMapId.begin();
@@ -219,5 +256,6 @@ int  ngx_logic_gataway::getOneId()
 }
 void ngx_logic_gataway::comeBackOneId(int _id)
 {
+    CLock lock(&g_socket.m_allchildidtolistMutex);
     m_changeSendMapId.push_back(_id);
 }

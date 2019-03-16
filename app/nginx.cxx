@@ -21,7 +21,6 @@
 #include"ngx_c_gataway_manager.h"
 #include"ngx_c_login_manager.h"
 
-#include"ngx_luamanager.h"
 //#include"/usr/include/mysql/mysql.h"
 
 //本文件用的函数声明
@@ -78,7 +77,6 @@ int main(int argc, char *const *argv)
     //printf("ssize_t n = %d\n",n);
     //exit(0);
 	
-	ngx_luamanager::getInstance()->init_lua_model(); 
 
     // MYSQL mysql, *sock;
     // mysql_init(&mysql); 

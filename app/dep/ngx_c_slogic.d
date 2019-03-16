@@ -1,15 +1,15 @@
-/home/share/mysever/nginx/app/link_obj/ngx_c_slogic.o: ngx_c_slogic.cxx \
- /home/share/mysever/nginx/_include/ngx_c_conf.h \
- /home/share/mysever/nginx/_include/ngx_global.h \
- /home/share/mysever/nginx/_include/ngx_c_slogic.h \
- /home/share/mysever/nginx/_include/ngx_c_socket.h \
- /home/share/mysever/nginx/_include/ngx_comm.h \
- /home/share/mysever/nginx/_include/ngx_c_threadpool.h \
- /home/share/mysever/nginx/_include/ngx_macro.h \
- /home/share/mysever/nginx/_include/ngx_global.h \
- /home/share/mysever/nginx/_include/ngx_func.h \
- /home/share/mysever/nginx/_include/ngx_c_memory.h \
- /home/share/mysever/nginx/_include/ngx_c_crc32.h \
- /home/share/mysever/nginx/_include/ngx_c_slogic.h \
- /home/share/mysever/nginx/_include/ngx_logiccomm.h \
- /home/share/mysever/nginx/_include/ngx_c_lockmutex.h
+/mnt/hgfs/server/Enhance-Game-Server/app/link_obj/ngx_c_slogic.o: ngx_c_slogic.cxx \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_conf.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_global.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_slogic.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_socket.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_comm.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_threadpool.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_macro.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_global.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_func.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_memory.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_crc32.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_slogic.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_logiccomm.h \
+ /mnt/hgfs/server/Enhance-Game-Server/_include/ngx_c_lockmutex.h

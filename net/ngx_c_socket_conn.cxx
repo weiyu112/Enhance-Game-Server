@@ -44,7 +44,15 @@ void ngx_connection_s::GetOneToUse()
     precvMemPointer = NULL;                           //既然没new内存，那自然指向的内存地址先给NULL
     iThrowsendCount = 0;                              //原子的
     psendMemPointer = NULL;                           //发送数据头指针记录
-    events          = 0;                              //epoll事件先给0 
+    events          = 0;                           //epoll事件先给0 
+    lastPingTime      = time(NULL);                   //上次ping的时间
+    servertype      = 0;
+    isClose         =false;
+
+
+    FloodkickLastTime = 0;                            //Flood攻击上次收到包的时间
+	FloodAttackCount  = 0;	                          //Flood攻击在该时间内收到包的次数统计
+    iSendCount        = 0;                            //发送队列中有的数据条目数，若client只发不收，则可能造成此数过大，依据此数做出踢出处理 
 }
 
 //回收回来一个连接的时候做一些事
@@ -222,13 +230,31 @@ void CSocekt::ngx_free_connection(lpngx_connection_t pConn)
 void CSocekt::inRecyConnectQueue(lpngx_connection_t pConn)
 {
     //ngx_log_stderr(0,"CSocekt::inRecyConnectQueue()执行，连接入到回收队列中.");
+    std::list<lpngx_connection_t>::iterator pos;
+    bool iffind = false;
     
     CLock lock(&m_recyconnqueueMutex); //针对连接回收列表的互斥量，因为线程ServerRecyConnectionThread()也有要用到这个回收列表；
+
+    //如下判断防止连接被多次扔到回收站中来
+    for(pos = m_recyconnectionList.begin(); pos != m_recyconnectionList.end(); ++pos)
+	{
+		if((*pos) == pConn)		
+		{	
+			iffind = true;
+			break;			
+		}
+	}
+    if(iffind == true) //找到了，不必再入了
+	{
+		//我有义务保证这个只入一次嘛
+        return;
+    }
 
     pConn->inRecyTime = time(NULL);        //记录回收时间
     ++pConn->iCurrsequence;
     m_recyconnectionList.push_back(pConn); //等待ServerRecyConnectionThread线程自会处理 
     ++m_totol_recyconnection_n;            //待释放连接队列大小+1
+    --m_onlineUserCount;                   //连入用户数量-1
     return;
 }
 
@@ -339,14 +365,14 @@ void* CSocekt::ServerReconnectChildServer(void *threadData)
             pSocketObj->m_childFreeServerConnectList.pop_front();
             
 
-            int sockfd = socket(AF_INET,SOCK_STREAM,0);
-            p_Conn->fd = sockfd;
+            // int sockfd = socket(AF_INET,SOCK_STREAM,0);
+            // p_Conn->fd = sockfd;
             if(connect(p_Conn->fd,(struct sockaddr *)&p_Conn->s_servaddrin,sizeof(p_Conn->s_servaddrin))<0){
                 printf("connet error:%s\n",strerror(errno));
                 pSocketObj->addOneChildFreeConnectionToList(p_Conn);
             }
             pSocketObj->ngx_build_connoction(p_Conn);
-
+            p_Conn->isClose=false;
             err = pthread_mutex_unlock(&pSocketObj->m_childserverListMutex); 
             if(err != 0)  ngx_log_stderr(err,"CSocekt::ServerReconnectChildServer()pthread_mutex_unlock2()失败，返回的错误码为%d!",err);
             //_sleeptime = 1000*1000*5;
@@ -370,6 +396,8 @@ void CSocekt::ngx_close_connection(lpngx_connection_t pConn)
     ngx_free_connection(pConn); 
     if(close(pConn->fd) == -1)
     {
+        close(pConn->fd);
+        pConn->fd = -1;
         ngx_log_error_core(NGX_LOG_ALERT,errno,"CSocekt::ngx_close_connection()中close(%d)失败!",pConn->fd);  
     }
     return;
@@ -378,17 +406,17 @@ void CSocekt::ngx_close_connection(lpngx_connection_t pConn)
 lpngx_connection_t CSocekt::ngx_get_one_childserver_connectbyservertype(int _type)
 {
 	CLock lock(&m_childserverListMutex);
-    ngx_log_stderr(0,"m_childServerConnectListsize:%d!\n",m_childServerConnectList.size());
+    //ngx_log_stderr(0,"m_childServerConnectListsize:%d!\n",m_childServerConnectList.size());
     std::list<lpngx_connection_t>::iterator item =m_childServerConnectList.begin();
     for(;item!=m_childServerConnectList.end();item++)
     {
         lpngx_connection_t _conn=*item;
-        ngx_log_stderr(0,"_conn->servertype:%d!\n",_conn->servertype);
+        //ngx_log_stderr(0,"_conn->servertype:%d!\n",_conn->servertype);
         if(_conn->servertype==_type)
         {
             m_childServerConnectList.erase(item);
             m_childServerConnectList.push_back(_conn);
-            ngx_log_stderr(0,"_conn->fd:%d!\n",_conn->fd);
+            //ngx_log_stderr(0,"_conn->fd:%d!\n",_conn->fd);
             return _conn;
         }
         //ngx_log_stderr(0,"_conn->aaaaaaaaaaaaaaaaaaaaaa!\n");
@@ -410,5 +438,6 @@ void CSocekt::removeAllChildConnectList()
 void CSocekt::addOneChildFreeConnectionToList(lpngx_connection_t _pconn)
 {
     CLock lock(&m_childserverListMutex);
+    _pconn->isClose = true;
     m_childFreeServerConnectList.push_back(_pconn);
 }
