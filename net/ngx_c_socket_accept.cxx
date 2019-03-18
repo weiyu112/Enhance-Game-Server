@@ -217,14 +217,14 @@ void CSocekt::ngx_build_connoction(lpngx_connection_t pConn)
     //客户端应该主动发送第一次的数据，这里将读事件加入epoll监控，这样当客户端发送数据来时，会触发ngx_wait_request_handler()被ngx_epoll_process_events()调用        
     if(ngx_epoll_oper_event(
                             pConn->fd,                  //socekt句柄
-                            EPOLL_CTL_ADD,      //事件类型，这里是增加
+                            EPOLL_CTL_MOD,      //事件类型，这里是增加
                             EPOLLIN|EPOLLRDHUP, //标志，这里代表要增加的标志,EPOLLIN：可读，EPOLLRDHUP：TCP连接的远端关闭或者半关闭 ，如果边缘触发模式可以增加 EPOLLET
                             0,                  //对于事件类型为增加的，不需要这个参数
                             pConn                //连接池中的连接
                             ) == -1)         
     {
         //增加事件失败，失败日志在ngx_epoll_add_event中写过了，因此这里不多写啥；
-        ngx_close_connection(pConn);//关闭socket,这种可以立即回收这个连接，无需延迟，因为其上还没有数据收发，谈不到业务逻辑因此无需延迟；
+        //ngx_close_connection(pConn);//关闭socket,这种可以立即回收这个连接，无需延迟，因为其上还没有数据收发，谈不到业务逻辑因此无需延迟；
         return; //直接返回
     }
 

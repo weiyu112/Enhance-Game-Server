@@ -158,6 +158,7 @@ ssize_t CSocekt::recvproc(lpngx_connection_t c,char *buff,ssize_t buflen)  //ssi
             // {
             //     ngx_log_error_core(NGX_LOG_ALERT,errno,"CSocekt::recvproc()中close_2(%d)失败!",c->fd);  
             // }
+            removeOneChildConnect(c);
             addOneChildFreeConnectionToList(c);
         }
         
@@ -200,30 +201,31 @@ ssize_t CSocekt::recvproc(lpngx_connection_t c,char *buff,ssize_t buflen)  //ssi
             if(errno == EBADF)  // #define EBADF   9 /* Bad file descriptor */
             {
                 //因为多线程，偶尔会干掉socket，所以不排除产生这个错误的可能性
-                if(c->servertype==0)
-                {
-                    zdClosesocketProc(c); 
-                }
-                else{
-                    ngx_log_stderr(0,"断开连接");
-                    if(ngx_epoll_oper_event(
-                            c->fd,          //socket句柄
-                            EPOLL_CTL_MOD,      //事件类型，这里是修改【因为我们准备减去写通知】
-                            EPOLLIN|EPOLLRDHUP,           //标志，这里代表要减去的标志,EPOLLOUT：可写【可写的时候通知我】
-                            1,                  //对于事件类型为增加的，EPOLL_CTL_MOD需要这个参数, 0：增加   1：去掉 2：完全覆盖
-                            c               //连接池中的连接
-                            ) == -1)
-                    {
-                        //有这情况发生？这可比较麻烦，不过先do nothing
-                        ngx_log_stderr(errno,"CSocekt::ngx_write_request_handler()中ngx_epoll_oper_event()失败。");
-                    } 
-                    //ngx_log_stderr(0,"加入重连");
-                    // if(close(c->fd) == -1)
-                    // {
-                    //     ngx_log_error_core(NGX_LOG_ALERT,errno,"CSocekt::recvproc()中close_2(%d)失败!",c->fd);  
-                    // }
-                    addOneChildFreeConnectionToList(c);
-                }
+                // if(c->servertype==0)
+                // {
+                //     zdClosesocketProc(c); 
+                // }
+                // else{
+                //     ngx_log_stderr(0,"断开连接");
+                //     if(ngx_epoll_oper_event(
+                //             c->fd,          //socket句柄
+                //             EPOLL_CTL_MOD,      //事件类型，这里是修改【因为我们准备减去写通知】
+                //             EPOLLIN|EPOLLRDHUP,           //标志，这里代表要减去的标志,EPOLLOUT：可写【可写的时候通知我】
+                //             1,                  //对于事件类型为增加的，EPOLL_CTL_MOD需要这个参数, 0：增加   1：去掉 2：完全覆盖
+                //             c               //连接池中的连接
+                //             ) == -1)
+                //     {
+                //         //有这情况发生？这可比较麻烦，不过先do nothing
+                //         ngx_log_stderr(errno,"CSocekt::ngx_write_request_handler()中ngx_epoll_oper_event()失败。");
+                //     } 
+                //     //ngx_log_stderr(0,"加入重连");
+                //     // if(close(c->fd) == -1)
+                //     // {
+                //     //     ngx_log_error_core(NGX_LOG_ALERT,errno,"CSocekt::recvproc()中close_2(%d)失败!",c->fd);  
+                //     // }
+                //     addOneChildFreeConnectionToList(c);
+                //     removeOneChildConnect(c);
+                // }
             }
             else
             {
@@ -258,6 +260,7 @@ ssize_t CSocekt::recvproc(lpngx_connection_t c,char *buff,ssize_t buflen)  //ssi
             // {
             //     ngx_log_error_core(NGX_LOG_ALERT,errno,"CSocekt::recvproc()中close_2(%d)失败!",c->fd);  
             // }
+            removeOneChildConnect(c);
             addOneChildFreeConnectionToList(c);
         }
         

@@ -139,11 +139,12 @@ public:
 	//数据发送相关
 	void msgSend(char *psendbuf);                                         //把数据扔到待发送对列中 
 	lpngx_connection_t ngx_get_one_childserver_connectbyservertype(int _type);
-	void zdClosesocketProc(lpngx_connection_t p_Conn);                    //主动关闭一个连接时的要做些善后的处理函数	
+	void zdClosesocketProc(lpngx_connection_t p_Conn);                    //主动关闭一个连接时的要做些善后的处理函数
+	bool ngx_open_listening_sockets();                                    //监听必须的端口【支持多个端口】	
 
 private:	
 	void ReadConf();                                                      //专门用于读各种配置项	
-	bool ngx_open_listening_sockets();                                    //监听必须的端口【支持多个端口】
+	
 	void ngx_close_listening_sockets();                                   //关闭监听套接字
 	bool setnonblocking(int sockfd);                                      //设置非阻塞套接字	
 
@@ -175,6 +176,7 @@ private:
 	
 	void addOneChildConnectionToList(lpngx_connection_t _pconn);
 	void removeAllChildConnectList();
+	void removeOneChildConnect(lpngx_connection_t _pconn);
 
 	void addOneChildFreeConnectionToList(lpngx_connection_t _pconn);
 

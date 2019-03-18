@@ -166,7 +166,11 @@ static void ngx_worker_process_cycle(int inum,const char *pprocname)
 {
     //设置一下变量
     ngx_process = NGX_PROCESS_WORKER;  //设置进程的类型，是worker进程
-
+    if(g_socket.ngx_open_listening_sockets() == false)  //打开监听端口    
+    {
+        ngx_log_stderr(0,"进程pid:%d,监听端口失败退出！！！\n",ngx_pid);
+        return;
+    } 
     //重新为子进程设置进程名，不要与父进程重复------
     ngx_worker_process_init(inum);
     ngx_setproctitle(pprocname); //设置标题   
@@ -245,6 +249,7 @@ static void ngx_worker_process_init(int inum)
         //内存没释放，但是简单粗暴退出；
         exit(-2);
     }
+    ;
     
     //如下这些代码参照官方nginx里的ngx_event_process_init()函数中的代码
     g_socket.ngx_epoll_init();           //初始化epoll相关内容，同时 往监听socket上增加监听事件，从而开始让监听端口履行其职责

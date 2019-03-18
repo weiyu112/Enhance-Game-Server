@@ -369,10 +369,24 @@ void* CSocekt::ServerReconnectChildServer(void *threadData)
             // p_Conn->fd = sockfd;
             if(connect(p_Conn->fd,(struct sockaddr *)&p_Conn->s_servaddrin,sizeof(p_Conn->s_servaddrin))<0){
                 printf("connet error:%s\n",strerror(errno));
+                // //客户端应该主动发送第一次的数据，这里将读事件加入epoll监控，这样当客户端发送数据来时，会触发ngx_wait_request_handler()被ngx_epoll_process_events()调用        
+                if(pSocketObj->ngx_epoll_oper_event(
+                                        p_Conn->fd,                  //socekt句柄
+                                        EPOLL_CTL_MOD,      //事件类型，这里是增加
+                                        EPOLLIN|EPOLLRDHUP, //标志，这里代表要增加的标志,EPOLLIN：可读，EPOLLRDHUP：TCP连接的远端关闭或者半关闭 ，如果边缘触发模式可以增加 EPOLLET
+                                        1,                  //对于事件类型为增加的，不需要这个参数
+                                        p_Conn                //连接池中的连接
+                                        ) == -1)         
+                {
+                    //增加事件失败，失败日志在ngx_epoll_add_event中写过了，因此这里不多写啥；
+                    //ngx_close_connection(pConn);//关闭socket,这种可以立即回收这个连接，无需延迟，因为其上还没有数据收发，谈不到业务逻辑因此无需延迟；
+                    continue; //直接返回
+                }
                 pSocketObj->addOneChildFreeConnectionToList(p_Conn);
             }
             pSocketObj->ngx_build_connoction(p_Conn);
             p_Conn->isClose=false;
+            pSocketObj->addOneChildConnectionToList(p_Conn);
             err = pthread_mutex_unlock(&pSocketObj->m_childserverListMutex); 
             if(err != 0)  ngx_log_stderr(err,"CSocekt::ServerReconnectChildServer()pthread_mutex_unlock2()失败，返回的错误码为%d!",err);
             //_sleeptime = 1000*1000*5;
@@ -434,7 +448,19 @@ void CSocekt::removeAllChildConnectList()
 {
     m_childServerConnectList.clear();
 }
-
+void CSocekt::removeOneChildConnect(lpngx_connection_t _pconn)
+{
+    CLock lock(&m_childserverListMutex);
+    std::list<lpngx_connection_t>::iterator m_listitem = m_childServerConnectList.begin();
+    for(;m_listitem!=m_childServerConnectList.end();)
+    {
+        if(_pconn==(*m_listitem))
+        {
+            return;
+        }
+        m_listitem++;
+    }
+}
 void CSocekt::addOneChildFreeConnectionToList(lpngx_connection_t _pconn)
 {
     CLock lock(&m_childserverListMutex);

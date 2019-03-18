@@ -61,8 +61,8 @@ CSocekt::CSocekt()
 bool CSocekt::Initialize()
 {
     ReadConf();  //读配置项
-    if(ngx_open_listening_sockets() == false)  //打开监听端口    
-        return false;  
+    // if(ngx_open_listening_sockets() == false)  //打开监听端口    
+    //     return false;  
     return true;
 }
 
@@ -291,6 +291,12 @@ bool CSocekt::ngx_open_listening_sockets()
             close(isock); //无需理会是否正常执行了                                                  
             return false;
         }
+
+        int reuseport = 1;
+        if(setsockopt(isock,SOL_SOCKET,SO_REUSEPORT,(const void*)&reuseport,sizeof(int))==-1)
+        {
+            ngx_log_stderr(errno,"CSocket::Initialize()中setsockopt(SO_REUSEPORT)失败",i);
+        }
         //设置该socket为非阻塞
         if(setnonblocking(isock) == false)
         {                
@@ -453,14 +459,44 @@ int CSocekt::ngx_connectto_child_server()
         p_cnn->s_servaddrin=servaddr;
         p_cnn->s_sockaddr = *(struct sockaddr*)&servaddr;
         p_cnn->fd = sockfd;
-        addOneChildConnectionToList(p_cnn);
+        p_cnn->rhandler = &CSocekt::ngx_read_request_handler;  //设置数据来时的读处理函数，其实官方nginx中是ngx_http_wait_request_handler()
+        p_cnn->whandler = &CSocekt::ngx_write_request_handler; //设置数据发送时的写处理函数。
+
+        //客户端应该主动发送第一次的数据，这里将读事件加入epoll监控，这样当客户端发送数据来时，会触发ngx_wait_request_handler()被ngx_epoll_process_events()调用        
+        if(ngx_epoll_oper_event(
+                                p_cnn->fd,                  //socekt句柄
+                                EPOLL_CTL_ADD,      //事件类型，这里是增加
+                                EPOLLIN|EPOLLRDHUP, //标志，这里代表要增加的标志,EPOLLIN：可读，EPOLLRDHUP：TCP连接的远端关闭或者半关闭 ，如果边缘触发模式可以增加 EPOLLET
+                                0,                  //对于事件类型为增加的，不需要这个参数
+                                p_cnn                //连接池中的连接
+                                ) == -1)         
+        {
+            //增加事件失败，失败日志在ngx_epoll_add_event中写过了，因此这里不多写啥；
+            //ngx_close_connection(pConn);//关闭socket,这种可以立即回收这个连接，无需延迟，因为其上还没有数据收发，谈不到业务逻辑因此无需延迟；
+            return 0; //直接返回
+        }
         if(connect(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr))<0){
             printf("connet error:%s\n",strerror(errno));
+            // //客户端应该主动发送第一次的数据，这里将读事件加入epoll监控，这样当客户端发送数据来时，会触发ngx_wait_request_handler()被ngx_epoll_process_events()调用        
+            if(ngx_epoll_oper_event(
+                                    p_cnn->fd,                  //socekt句柄
+                                    EPOLL_CTL_MOD,      //事件类型，这里是增加
+                                    EPOLLIN|EPOLLRDHUP, //标志，这里代表要增加的标志,EPOLLIN：可读，EPOLLRDHUP：TCP连接的远端关闭或者半关闭 ，如果边缘触发模式可以增加 EPOLLET
+                                    1,                  //对于事件类型为增加的，不需要这个参数
+                                    p_cnn                //连接池中的连接
+                                    ) == -1)         
+            {
+                //增加事件失败，失败日志在ngx_epoll_add_event中写过了，因此这里不多写啥；
+                ///ngx_close_connection(pConn);//关闭socket,这种可以立即回收这个连接，无需延迟，因为其上还没有数据收发，谈不到业务逻辑因此无需延迟；
+                return 0; //直接返回
+            }
             addOneChildFreeConnectionToList(p_cnn);
+
             return 0;
         }
+        
         p_cnn->isClose=false;
-        ngx_build_connoction(p_cnn);
+        addOneChildConnectionToList(p_cnn);
     }
     
     
