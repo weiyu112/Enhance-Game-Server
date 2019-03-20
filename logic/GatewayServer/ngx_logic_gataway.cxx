@@ -76,12 +76,14 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
     char *p_sendbuf = (char *)p_memory->AllocMemory(m_msgHander+m_apkHander+iSendLen,false);//准备发送的格式，这里是 消息头+包头+包体
     //ngx_log_stderr(0,"packagelen:%d!\n",m_msgHander+m_apkHander+iSendLen);
     pPkgHeader = (LPCOMM_PKG_HEADER)(p_sendbuf+m_msgHander);
-    //ngx_log_stderr(0,"sServerType错误，不存在此server id：%d!\n",pConn->servertype);
+    // ngx_log_stderr(0,"pConn->servertype：%d!\n",pConn->servertype);
+    // ngx_log_stderr(0,"pMypkHeader->isComeSever：%d!\n",(int)pMypkHeader->isComeSever);
+    // ngx_log_stderr(0,"htonl(pMypkHeader->_id)：%d!\n",pMypkHeader->_id);
     //ngx_log_stderr(0,"4444444444444444444444444444444!\n");
     if(pMypkHeader->isComeSever&&pConn->servertype!=0)
     {
-        _pMsgHeader=getOneMsgHeaderBySocketFd(htonl(pMypkHeader->_id));
-        removeOneSendItemById(htonl(pMypkHeader->_id));
+        _pMsgHeader=getOneMsgHeaderBySocketFd(pMypkHeader->_id);
+        removeOneSendItemById(pMypkHeader->_id);
         // ngx_log_stderr(0,"_pMsgHeader->iCurrsequence:%d!\n", _pMsgHeader->iCurrsequence);
         // ngx_log_stderr(0,"_pMsgHeader->pConn->iCurrsequence:%d!\n", _pMsgHeader->pConn->iCurrsequence);
         // lpngx_connection_t _Conn = _pMsgHeader->pConn;
@@ -176,7 +178,7 @@ bool ngx_logic_gataway::_HandleGataway(lpngx_connection_t pConn,LPCOMM_PKG_HEADE
     // // //e)包体内容全部确定好后，计算包体的crc32值
     // pPkgHeader->crc32   = p_crc32->Get_CRC((unsigned char *)pPkgBody,iSendLen);
     // pPkgHeader->crc32   = htonl(pPkgHeader->crc32);		
-    //ngx_log_stderr(0,"222222222222!");
+    //ngx_log_stderr(0,"222222222222!msgSend");
     //f)发送数据包
     g_socket.msgSend(p_sendbuf);  
     /*if(ngx_epoll_oper_event(

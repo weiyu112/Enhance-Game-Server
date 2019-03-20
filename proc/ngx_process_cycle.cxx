@@ -10,7 +10,7 @@
 #include "ngx_func.h"
 #include "ngx_macro.h"
 #include "ngx_c_conf.h"
-
+#include"lua_wrapper.h"
 //函数声明
 static void ngx_start_worker_processes(int threadnums);
 static int ngx_spawn_process(int threadnums,const char *pprocname);
@@ -164,6 +164,7 @@ static int ngx_spawn_process(int inum,const char *pprocname)
 //inum：进程编号【0开始】
 static void ngx_worker_process_cycle(int inum,const char *pprocname) 
 {
+    lua_wrapper::init();
     //设置一下变量
     ngx_process = NGX_PROCESS_WORKER;  //设置进程的类型，是worker进程
     if(g_socket.ngx_open_listening_sockets() == false)  //打开监听端口    

@@ -1025,12 +1025,6 @@ void* CSocekt::ServerSendQueueThread(void* threadData)
                     pos++;
                     continue;
                 }
-                if(p_Conn->isClose)
-                {
-                    ngx_log_stderr(0,"close关闭\n");
-                    pos++;
-                    continue;
-                }
                 //ngx_log_stderr(0,"333333333333333333333\n");
                 --p_Conn->iSendCount;   //发送队列中有的数据条目数-1；
                 //走到这里，可以发送消息，一些必须的信息记录，要发送的东西也要从发送队列里干掉
@@ -1050,7 +1044,7 @@ void* CSocekt::ServerSendQueueThread(void* threadData)
 	                //此时，就变成了在epoll驱动下写数据，全部数据发送完毕后，再把写事件通知从epoll中干掉；
 	                //优点：数据不多的时候，可以避免epoll的写事件的增加/删除，提高了程序的执行效率；                         
                 //(1)直接调用write或者send发送数据
-                //ngx_log_stderr(errno,"即将发送数据%ud。",p_Conn->isendlen);
+                ngx_log_stderr(0,"即将发送数据%ud。",p_Conn->isendlen);
 
                 sendsize = pSocketObj->sendproc(p_Conn,p_Conn->psendbuf,p_Conn->isendlen); //注意参数
                 if(sendsize > 0)
@@ -1062,7 +1056,7 @@ void* CSocekt::ServerSendQueueThread(void* threadData)
                         p_memory->FreeMemory(p_Conn->psendMemPointer);  //释放内存
                         p_Conn->psendMemPointer = NULL;
                         p_Conn->iThrowsendCount = 0;  //这行其实可以没有，因此此时此刻这东西就是=0的                        
-                        //ngx_log_stderr(0,"CSocekt::ServerSendQueueThread()中数据发送完毕，很好。"); //做个提示吧，商用时可以干掉
+                        ngx_log_stderr(0,"CSocekt::ServerSendQueueThread()中数据发送完毕，很好。"); //做个提示吧，商用时可以干掉
                     }
                     else  //没有全部发送完毕(EAGAIN)，数据只发出去了一部分，但肯定是因为 发送缓冲区满了,那么
                     {                        
@@ -1083,7 +1077,7 @@ void* CSocekt::ServerSendQueueThread(void* threadData)
                             ngx_log_stderr(errno,"CSocekt::ServerSendQueueThread()ngx_epoll_oper_event()失败.");
                         }
 
-                        //ngx_log_stderr(errno,"CSocekt::ServerSendQueueThread()中数据没发送完毕【发送缓冲区满】，整个要发送%d，实际发送了%d。",p_Conn->isendlen,sendsize);
+                        ngx_log_stderr(0,"CSocekt::ServerSendQueueThread()中数据没发送完毕【发送缓冲区满】，整个要发送%d，实际发送了%d。",p_Conn->isendlen,sendsize);
 
                     } //end if(sendsize > 0)
                     continue;  //继续处理其他消息                    

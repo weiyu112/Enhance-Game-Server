@@ -24,6 +24,8 @@
 #include "ngx_c_slogic.h"  
 #include "ngx_logiccomm.h"  
 #include "ngx_c_lockmutex.h"  
+#include"bytearray.h"
+#include"lua_wrapper.h"
 
 
 //#define AUTH_TOTAL_COMMANDS sizeof(statusHandler)/sizeof(handler) //整个命令有多少个，编译时即可知道
@@ -136,7 +138,7 @@ void CLogicSocket::threadRecvProcFunc(char *pMsgBuf)
     //一切正确，可以放心大胆的处理了
     //(4)调用消息码对应的成员函数来处理
      //ngx_log_stderr(0,"CLogicSocket::threadRecvProcFunc()sServerType=%d消息码不对!",pPkgHeader->sServerType);
-     //ngx_log_stderr(0,"111111111111111111111111111111111111111");
+     //ngx_log_stderr(0,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     if(imsgCode==0)
     {
         _HandlePing(p_Conn,pMsgHeader,(char *)pPkgBody,pkglen-m_iLenPkgHeader);
@@ -151,7 +153,15 @@ void CLogicSocket::threadRecvProcFunc(char *pMsgBuf)
             _handler(p_Conn,pPkgHeader,pMsgHeader,(char *)pPkgBody,pkglen-m_iLenPkgHeader);
         }
         else{
-            ngx_log_stderr(0,"CLogicSocket::threadRecvProcFunc()中imsgCode=%d消息码不对!",imsgCode); //这种有恶意倾向或者错误倾向的包，希望打印出来看看是谁干的
+            ngx_log_stderr(0,"htonl(pPkgHeader->_id)：%d!\n",pPkgHeader->_id);
+            MsgPack * pack = new MsgPack(pMsgHeader,imsgCode,pPkgHeader->_id,pPkgHeader->sServerType,pkglen-m_iLenPkgHeader);
+            //ngx_log_stderr(0,"CLogicSocket::threadRecvProcFunc()中imsgCode=%d消息码不对!",imsgCode); //这种有恶意倾向或者错误倾向的包，希望打印出来看看是谁干的
+            lua_wrapper::callLuarec_hander(pack);
+            if(pack)
+            {
+                delete pack;
+                pack=nullptr;
+            }
             return; //丢弃不理这种包【恶意包或者错误包】
         }
     }

@@ -69,18 +69,18 @@ $(BIN):$(LINK_OBJ)
 
 #一些变量：$@：目标，     $^：所有目标依赖
 # gcc -o 是生成可执行文件
-	$(CC) -o $@ $^ -lstdc++  -lpthread -llua5.2 `mysql_config --cflags --libs`
+	$(CC) -o $@ $^ -lstdc++  -lpthread -llua `mysql_config --cflags --libs`
 
 #----------------------------------------------------------------1end-------------------
 
 
 #----------------------------------------------------------------2begin-----------------
 #%.o:%.c
-$(LINK_OBJ_DIR)/%.o:%.cxx
+$(LINK_OBJ_DIR)/%.o:%.c
 # gcc -c是生成.o目标文件   -I可以指定头文件的路径
 #如下不排除有其他字符串，所以从其中专门把.c过滤出来 
 #$(CC) -o $@ -c $^
-	$(CC) -I$(INCLUDE_PATH) -o $@ -c $(filter %.c,$^)
+	$(CC) $(INCLUDE_PATH) -o $@ -c $(filter %.c,$^)
 #----------------------------------------------------------------2end-------------------
 
 
@@ -100,7 +100,7 @@ $(DEP_DIR)/%.d:%.c
 #	gcc -MM $^ | sed 's/^/$(LINK_OBJ_DIR)&/g' > $@
 #  >>表示追加
 #	gcc -I$(INCLUDE_PATH) -MM $^ >> $@
-	$(CC) -I$(INCLUDE_PATH) -MM $^ >> $@
+	$(CC) $(INCLUDE_PATH) -MM $^ >> $@
 
 #上行处理后，.d文件中内容应该就如：/mnt/hgfs/linux/nginx/app/link_obj/nginx.o: nginx.c ngx_func.h ../signal/ngx_signal.h
 

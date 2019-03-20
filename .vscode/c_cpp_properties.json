@@ -4,7 +4,14 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/_include/**"
+                "${workspaceFolder}/_include/net/**",
+                "${workspaceFolder}/_include/**",
+                "${workspaceFolder}/_include/database/**",
+                "${workspaceFolder}/_include/logic/**",
+                "${workspaceFolder}/_include/lua/**",
+                "${workspaceFolder}/_include/lua/LuaBridge**",
+                "${workspaceFolder}/_include/lua/LuaBridge/detail**",
+                "${workspaceFolder}/_include/lua/tolua/**"
             ],
             "defines": [
                 "_DEBUG",

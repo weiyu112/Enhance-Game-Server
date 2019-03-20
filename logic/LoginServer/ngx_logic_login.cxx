@@ -83,7 +83,7 @@ bool ngx_logic_login::_HandleRegister(lpngx_connection_t pConn,LPCOMM_PKG_HEADER
     pPkgHeader->isComeSever=true;
     pPkgHeader->sServerType=1;
     pPkgHeader->sServerType=htons(pMypkHeader->sServerType);
-    pPkgHeader->_id = pMypkHeader->_id;
+    pPkgHeader->_id = htonl(pMypkHeader->_id);
     //d)填充包体
     LPSTRUCT_REGISTER p_sendInfo = (LPSTRUCT_REGISTER)(p_sendbuf+m_msgHander+m_apkHander);	//跳过消息头，跳过包头，就是包体了
     //memset(p_sendInfo,1,iSendLen);

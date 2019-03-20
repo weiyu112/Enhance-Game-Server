@@ -20,6 +20,13 @@
 #include "NattyConnectionPool.h"
 #include"ngx_c_gataway_manager.h"
 #include"ngx_c_login_manager.h"
+#include"lua_wrapper.h"
+
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 //#include"/usr/include/mysql/mysql.h"
 
@@ -77,7 +84,8 @@ int main(int argc, char *const *argv)
     //printf("ssize_t n = %d\n",n);
     //exit(0);
 	
-
+    
+    
     // MYSQL mysql, *sock;
     // mysql_init(&mysql); 
     // sock = mysql_real_connect(&mysql, "127.0.0.1", "root", "123456", "weiyu", 3306, nullptr, 0);
